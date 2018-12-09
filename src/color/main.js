@@ -1,11 +1,23 @@
 import io from 'socket.io-client'
-import Fluider from '../fluid'
-import { random, hexToRgb, lerp } from '../utils'
+import Fluider from './fluid'
+import { random, hexToRgb, lerp, fullscreen } from '../utils'
 
-const fluider = new Fluider(document.getElementById('canvas'));
+const canvas = document.getElementById('canvas')
+const WIDTH = canvas.width;
+const HEIGHT = canvas.height;
+const fluider = new Fluider(canvas);
 fluider.run();
 
-const socket = io(process.env.SERVER_URL);
+canvas.addEventListener('click', () => {
+  fullscreen(canvas);
+})
+
+let serverURL;
+if (process.env.NODE_ENV === 'development') {
+  serverURL = process.env.SERVER_URL;
+}
+
+const socket = io(serverURL);
 
 socket.on('connect', () => {
   console.log('connect!')
@@ -15,7 +27,6 @@ socket.on('imageData', (values)=> {
   updateCanvas(values)
   // console.log(values);
 })
-
 
 const colorStatus = [
   { 
@@ -95,7 +106,7 @@ class Walker {
     this.ax = ax;
     this.ay = ay;
 
-    this.interval = 0.05;
+    // this.interval = 0.001;
     this.duration = duration
     this.sum = 0;
 
@@ -119,8 +130,8 @@ class Walker {
   }
 
   _walk(cb) {
-    // this.vx = this.vx + this.ax * this.interval;
-    // this.vy = this.vy + this.ay * this.interval;
+    this.vx = this.vx + this.ax * this.interval;
+    this.vy = this.vy + this.ay * this.interval;
 
     this.x = this.x + this.vx * this.interval
     this.y = this.y + this.vy * this.interval
@@ -132,32 +143,51 @@ class Walker {
 let walker = null
 
 function randomWalk() {
-  const vx = random(50) - 25;
-  const vy = random(50) - 25;
-  const ax = random(50) - 25;
-  const ay = random(50) - 25;
+  let vx = (random(WIDTH) - WIDTH / 2);
+  let vy = (random(HEIGHT) - HEIGHT / 2);
+  vx = vx > 0 ? vx + 30 : vx - 30;
+  vy = vy > 0 ? vy + 30 : vy - 30;
+  vx *= 0.7;
+  vy *= 0.7;
+  // const vx = 40;
+  // const vy = 40;
+  let ax = random(10);
+  let ay = random(10);
+  // ax = vx > 0 ? -a
+  // const ax = 0;
+  // const ay = 0;
   
-  
-  const width = 128;
-  const height = 128;
-  let x = vx < 0 ? width + random(width / 50): random(width / 50);
-  let y = vy > 0 ? height + random(height / 50): random(height / 50);
+  let x = vx < 0 ? WIDTH - 11 - random(Math.floor(WIDTH / 2)) : random(Math.floor(WIDTH / 2)) + 10;
+  let y = vy > 0 ? HEIGHT - 11 - random(HEIGHT / 2): random(HEIGHT / 2) + 10;
   
   // console.log(x, y, vx, vy, ax, ay)
-  if (walker) {
-    walker.stop();
-  }
-  walker = new Walker(x, y, vx, vy, ax, ay)
-  walker.walk((x, y) => {
-    fluider.move(Math.round(x), Math.round(y));
-  })
+  // if (walker) {
+  //   walker.stop();
+  // }
+  // walker = new Walker(x, y, vx, vy, ax, ay)
+  // walker.walk((x, y) => {
+  //   fluider.move(Math.round(x), Math.round(y));
+  // })
+
+  fluider.startWalk(x, y, vx, vy, ax, ay)
 }
+
+// setInterval(() => {
+//   const color = hexToRgb(colorStatus[random(colorStatus.length)].color);
+
+//   currentColors.push({
+//     color: color,
+//     originColor: color,
+//     rate: 1, 
+//   })
+
+//   randomWalk();
+// }, 2000)
 
 let currentColors = []
 
-
 function age(colors, {
-  delta = 0.01
+  delta = 0.02
 } = {}) {
   const aged = colors
   .map(({
@@ -166,11 +196,11 @@ function age(colors, {
     rate: prevRate,
   }) => {
     let rate = prevRate - delta;
-    rate = rate < 0 ? 0 : (rate > 1 ? 1 : rate);
+    let ratio = rate < 0 ? 0 : (rate > 1 ? 1 : rate);
     let color = {
-      r: lerp(rate, 255, originColor.r),
-      g: lerp(rate, 255, originColor.g),
-      b: lerp(rate, 255, originColor.b),
+      r: lerp(ratio, 255, originColor.r),
+      g: lerp(ratio, 255, originColor.g),
+      b: lerp(ratio, 255, originColor.b),
     }
     
     return {
@@ -187,7 +217,7 @@ function age(colors, {
 
 function createColorMapper(colors) {
   return (p, ux, uy) => {
-    const rate = p * 555 / 255;
+    const rate = p * 4000 / 255;
 
     return getGradientedColor(colors, rate)
   }
@@ -247,7 +277,8 @@ function getGradientedColor(colors, _rate) {
     big: bigColor
   })
 
-  const ratio = (rate - small.rate) / (big.rate - small.rate);
+  const bigRate = big.rate > 1 ? 1 : big.rate;
+  const ratio = (rate - small.rate) / (bigRate - small.rate);
 
   const color = {
     r: lerp(ratio, small.color.r, big.color.r),

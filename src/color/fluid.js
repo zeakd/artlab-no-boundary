@@ -1,4 +1,4 @@
-import { lerp, clamp, hexToRgb, random } from './utils'
+import { lerp, clamp, hexToRgb, random } from '../utils'
 
 function sampler(a, width, height, stride, offset){
   var f = function(x, y, value) {
@@ -30,6 +30,7 @@ class Fluider {
 
     this.animate = this.animate.bind(this);
     this.setColor = this.setColor.bind(this);
+    this.startWalk = this.startWalk.bind(this);
     this.colorMapper = (p, ux, uy) => {
       
       const rate = p * 555 / 255;
@@ -53,6 +54,13 @@ class Fluider {
   }
 
   run() {
+    this.x = this.WIDTH / 2;
+    this.y = this.HEIGHT / 2;
+    this.vx = 0;
+    this.vy = 0;
+    this.ax = 0;
+    this.ay = 0;
+
     this.setColor(this.color);
 
     this.sx = this.canvas.width/ this.canvas.clientWidth;
@@ -66,6 +74,7 @@ class Fluider {
     window.addEventListener('mousemove', (e) => {
         this.mouseX = (e.clientX - this.left)|0,
         this.mouseY = (e.clientY - this.top)|0;
+        // console.log('mouse move ', this.mouseX, this.mouseY)
     }); 
 
     this.lastMouseX = this.mouseX;
@@ -139,11 +148,21 @@ class Fluider {
   }
 
   move(x, y) {
-    this.pointX = x > this.WIDTH - 11 ? this.WIDTH - 11 : (x < 10 ? 10 : x);
-    this.pointY = y > this.HEIGHT - 11 ? this.HEIGHT - 11 : (y < 10 ? 10 : y);
+    // this.pointX = x > this.WIDTH - 11 ? this.WIDTH - 11 : (x < 10 ? 10 : x);
+    // this.pointY = y > this.HEIGHT - 11 ? this.HEIGHT - 11 : (y < 10 ? 10 : y);
+    this.pointX = x;
+    this.pointY = y;
   }
 
   addPoint() {
+    if (
+      this.pointX < 10 ||
+      this.pointX > this.WIDTH - 11 ||
+      this.pointY < 10 ||
+      this.pointY > this.HEIGHT - 11
+    ) {
+      return;
+    }
     const ux = this.u1x;
     const uy = this.u1y;
 
@@ -152,7 +171,7 @@ class Fluider {
 
     const dx = this.pointX - this.prevPointX;
     const dy = this.pointY - this.prevPointY;
-    // console.log(this.pointX, this.prevPointX, this.pointY, this.prevPointY, dx, dy)
+    // console.log(this.pointX, this.pointY, this.prevPointX, this.prevPointY)
 
     this.prevPointX = this.pointX;
     this.prevPointY = this.pointY;
@@ -168,6 +187,7 @@ class Fluider {
     const x = clamp(this.mouseX * this.sx, 1, this.WIDTH - 2);
     const y = clamp(this.mouseY * this.sy, 1, this.HEIGHT - 2);
 
+    // console.log(this.mouseX, this.mouseY, this.lastMouseX, this.lastMouseY)
     // console.log(x, y);
     const dx = this.mouseX - this.lastMouseX;
     const dy = this.mouseY - this.lastMouseY;
@@ -175,7 +195,7 @@ class Fluider {
     // console.log(dx, dy);
     this.lastMouseX = this.mouseX;
     this.lastMouseY = this.mouseY;
-
+    
     
     ux(x, y, ux(x, y)-dx);
     uy(x, y, uy(x, y)-dy);
@@ -330,9 +350,32 @@ class Fluider {
     this.ctx.putImageData(this.imageData, 0, 0);
   }
 
+  startWalk(x, y, vx, vy, ax, ay, duration = 1) {
+    this.x = x;
+    this.y = y;
+    this.vx = vx;
+    this.vy = vy;
+    this.ax = ax;
+    this.ay = ay;
+
+    this.duration = duration
+    this.sum = 0;
+  }
+
+  walk() {
+    this.vx = this.vx + this.ax * 0.1;
+    this.vy = this.vy + this.ay * 0.1;
+
+    this.x = this.x + this.vx * 0.1;
+    this.y = this.y + this.vy * 0.1;
+  }
+
   animate() {
     this.simulate();
+    this.walk();
+    this.move(this.x, this.y)
     this.draw();
+    
 
     window.requestAnimationFrame(this.animate);
   }

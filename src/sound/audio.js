@@ -92,7 +92,12 @@ const audioStates = [
  
 ]
 
-const socket = io('http://localhost:4000');
+let serverURL;
+if (process.env.NODE_ENV === 'development') {
+  serverURL = process.env.SERVER_URL;
+}
+
+const socket = io(serverURL);
 socket.on('connect', () => {
   console.log('connect!')
 });

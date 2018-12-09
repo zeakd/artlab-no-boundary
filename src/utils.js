@@ -20,3 +20,12 @@ export function hexToRgb(hex) {
 export function clamp(a, min, max){
   return Math.max(Math.min(a, max), min);
 }
+
+export function fullscreen(el){
+  if(el.webkitRequestFullScreen) {
+      el.webkitRequestFullScreen();
+  }
+ else {
+    el.mozRequestFullScreen();
+ }            
+}
