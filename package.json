@@ -1,0 +1,21 @@
+{
+  "name": "artlab",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "scripts": {
+    "start": "parcel src/index.html",
+    "sound": "parcel src/sound.html -p 4321"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.16.4",
+    "internal-ip": "^3.0.1",
+    "socket.io": "^2.2.0",
+    "socket.io-client": "^2.2.0"
+  },
+  "devDependencies": {
+    "parcel-bundler": "^1.10.3",
+    "sass": "^1.15.2"
+  }
+}
