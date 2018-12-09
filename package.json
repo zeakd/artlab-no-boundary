@@ -5,7 +5,8 @@
   "license": "MIT",
   "scripts": {
     "start": "parcel src/index.html",
-    "sound": "parcel src/sound.html -p 4321"
+    "sound": "parcel src/sound.html -p 4321",
+    "build": "parcel build src/index.html"
   },
   "dependencies": {
     "cors": "^2.8.5",
